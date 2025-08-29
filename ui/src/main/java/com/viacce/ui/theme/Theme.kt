@@ -40,7 +40,7 @@ private val LightColorScheme = lightColorScheme(
 
 val ElectricRadialGradient = Brush.radialGradient(
     colors = listOf(NeonBlue, DeepBlue),
-    radius = 800f
+    radius = 1200f
 )
 
 @Composable

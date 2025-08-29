@@ -1,43 +1,45 @@
 package com.viacce.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.viacce.ui.theme.DeepBlue
 
 @Composable
 fun CryptexButton(
     text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
     icon: ImageVector? = null,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
 ) {
+    val cornerRadius = 16.dp
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier,
         colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-            disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f)
+            containerColor = Color.Transparent
         ),
-        shape = MaterialTheme.shapes.medium,
         elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 6.dp,
-            pressedElevation = 8.dp,
-            disabledElevation = 0.dp
-        )
+            defaultElevation = 2.dp
+        ),
+        modifier = modifier
+            .background(
+                color = DeepBlue.copy(alpha = 0.4f),
+                shape = RoundedCornerShape(cornerRadius),
+            )
     ) {
         Row {
             if (icon != null) {

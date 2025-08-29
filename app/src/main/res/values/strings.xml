@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">cryptex</string>
+    <string name="encrypt">Encrypt file</string>
+    <string name="decrypt">Decrypt file</string>
 </resources>
