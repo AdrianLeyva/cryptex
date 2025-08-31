@@ -29,8 +29,8 @@ import java.io.File
 
 @Composable
 fun CryptoScreen(
-    cryptoUiModel: CryptoUiModel,
     modifier: Modifier = Modifier,
+    cryptoUiModel: CryptoUiModel,
     onEncryptFile: (File) -> Unit,
     onDecryptFile: (File) -> Unit
 ) {

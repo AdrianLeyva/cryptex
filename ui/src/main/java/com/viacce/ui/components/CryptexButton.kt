@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.viacce.ui.theme.DeepBlue
@@ -46,6 +47,7 @@ fun CryptexButton(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
+                    tint = Color.White,
                     modifier = Modifier
                         .size(20.dp)
                         .padding(end = 8.dp)
@@ -53,7 +55,8 @@ fun CryptexButton(
             }
             Text(
                 text = text,
-                fontSize = 16.sp
+                fontSize = 16.sp,
+                style = TextStyle(color = Color.White)
             )
         }
     }
