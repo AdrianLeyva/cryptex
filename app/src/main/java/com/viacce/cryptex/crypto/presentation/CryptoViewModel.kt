@@ -1,5 +1,6 @@
 package com.viacce.cryptex.crypto.presentation
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.viacce.crypto.data.CryptexRepository
@@ -12,32 +13,42 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
-class CryptoViewModel : ViewModel() {
+class CryptoViewModel(private val context: Context) : ViewModel() {
 
     val cryptoUiModelState: StateFlow<CryptoUiModel>
         get() = _cryptoUiModelState
     private var _cryptoUiModelState = MutableStateFlow(CryptoUiModel())
-
-    fun encryptFile(file: File, password: String) {
-        val repository = CryptexRepository()
-        val usecase = EncryptFileUseCase(repository)
-        emitUiModelState(isLoading = true)
+    private val repository = CryptexRepository(context)
+    private val encryptUseCase = EncryptFileUseCase(repository)
+    private val decryptUseCase = DecryptFileUseCase(repository)
+    fun encryptFile(data: ByteArray, fileName: String, password: String) {
+        _cryptoUiModelState.value = CryptoUiModel(isLoading = true)
         viewModelScope.launch(Dispatchers.IO) {
-            val file = usecase.execute(file, password)
-            withContext(Dispatchers.Main) {
-                emitUiModelState(isLoading = false, file = file)
+            try {
+                val file = encryptUseCase.execute(data, fileName, password)
+                withContext(Dispatchers.Main) {
+                    emitUiModelState(isLoading = false, file = file)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    emitUiModelState(isLoading = false, exception = e)
+                }
             }
         }
     }
 
     fun decryptFile(file: File, password: String) {
-        val repository = CryptexRepository()
-        val usecase = DecryptFileUseCase(repository)
-        emitUiModelState(isLoading = true)
+        _cryptoUiModelState.value = CryptoUiModel(isLoading = true)
         viewModelScope.launch(Dispatchers.IO) {
-            val file = usecase.execute(file, password)
-            withContext(Dispatchers.Main) {
-                emitUiModelState(isLoading = false, file = file)
+            try {
+                val decrypted = decryptUseCase.execute(file, password)
+                withContext(Dispatchers.Main) {
+                    emitUiModelState(isLoading = false, file = decrypted)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    emitUiModelState(isLoading = false, exception = e)
+                }
             }
         }
     }

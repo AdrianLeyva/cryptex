@@ -1,6 +1,9 @@
 package com.viacce.cryptex.crypto.presentation
 
+import android.content.Context
 import android.net.Uri
+import android.os.Environment
+import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -31,25 +34,38 @@ import java.io.File
 fun CryptoScreen(
     modifier: Modifier = Modifier,
     cryptoUiModel: CryptoUiModel,
-    onEncryptFile: (File) -> Unit,
-    onDecryptFile: (File) -> Unit
+    onEncryptFile: (ByteArray, String, String) -> Unit,
+    onDecryptFile: (File, String) -> Unit
 ) {
     val context = LocalContext.current
     val snackBarHostState = remember { SnackbarHostState() }
+
+    val cryptexDir = File(
+        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS),
+        "Cryptex"
+    )
+    if (!cryptexDir.exists()) cryptexDir.mkdirs()
+
+
     val encryptLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let {
-            val file = File(it.path ?: "")
-            onEncryptFile(file)
+        uri?.let { selectedUri ->
+            val inputStream = context.contentResolver.openInputStream(selectedUri) ?: return@let
+            val data = inputStream.readBytes()
+            val fileName = getFileNameFromUri(context, selectedUri)
+            onEncryptFile(data, fileName, "cryptex")
         }
     }
+
     val decryptLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let {
-            val file = File(it.path ?: "")
-            onDecryptFile(file)
+        uri?.let { selectedUri ->
+            val inputStream = context.contentResolver.openInputStream(selectedUri) ?: return@let
+            val tempFile = File(context.cacheDir, "temp_${System.currentTimeMillis()}.cryptex")
+            tempFile.outputStream().use { output -> inputStream.copyTo(output) }
+            onDecryptFile(tempFile, "cryptex")
         }
     }
 
@@ -107,4 +123,14 @@ fun CryptoScreen(
                 }
         }
     }
+}
+
+fun getFileNameFromUri(context: Context, uri: Uri): String {
+    context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+        val nameIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME)
+        if (cursor.moveToFirst() && nameIndex != -1) {
+            return cursor.getString(nameIndex)
+        }
+    }
+    return "file_${System.currentTimeMillis()}"
 }

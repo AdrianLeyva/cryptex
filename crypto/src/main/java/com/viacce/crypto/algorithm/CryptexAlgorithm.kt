@@ -2,30 +2,44 @@ package com.viacce.crypto.algorithm
 
 import java.security.SecureRandom
 import javax.crypto.Cipher
-import javax.crypto.SecretKey
-import javax.crypto.spec.GCMParameterSpec
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.PBEKeySpec
+import javax.crypto.spec.SecretKeySpec
 
-object CryptexAlgorithm {
+class CryptexAlgorithm {
 
-    const val EXTENSION = ".cryptex"
-    private const val TRANSFORMATION = "AES/GCM/NoPadding"
-    private const val TAG_LENGTH = 128
-    private const val IV_LENGTH = 12
+    private val algorithm = "AES/CBC/PKCS5Padding"
+    private val keyAlgorithm = "PBKDF2WithHmacSHA256"
+    private val keySize = 256
+    private val iterations = 65536
+    private val ivSize = 16
+    private val saltSize = 16
 
-    fun encrypt(data: ByteArray, key: SecretKey): Pair<ByteArray, ByteArray> {
-        val cipher = Cipher.getInstance(TRANSFORMATION)
-        val iv = ByteArray(IV_LENGTH)
-        SecureRandom().nextBytes(iv)
-        val spec = GCMParameterSpec(TAG_LENGTH, iv)
-        cipher.init(Cipher.ENCRYPT_MODE, key, spec)
+    fun encrypt(data: ByteArray, password: String): ByteArray {
+        val salt = ByteArray(saltSize).apply { SecureRandom().nextBytes(this) }
+        val key = generateKey(password, salt)
+        val iv = ByteArray(ivSize).apply { SecureRandom().nextBytes(this) }
+        val cipher = Cipher.getInstance(algorithm)
+        cipher.init(Cipher.ENCRYPT_MODE, key, IvParameterSpec(iv))
         val encrypted = cipher.doFinal(data)
-        return encrypted to iv
+        return salt + iv + encrypted
     }
 
-    fun decrypt(data: ByteArray, key: SecretKey, iv: ByteArray): ByteArray {
-        val cipher = Cipher.getInstance(TRANSFORMATION)
-        val spec = GCMParameterSpec(TAG_LENGTH, iv)
-        cipher.init(Cipher.DECRYPT_MODE, key, spec)
-        return cipher.doFinal(data)
+    fun decrypt(data: ByteArray, password: String): ByteArray {
+        val salt = data.copyOfRange(0, saltSize)
+        val iv = data.copyOfRange(saltSize, saltSize + ivSize)
+        val encryptedData = data.copyOfRange(saltSize + ivSize, data.size)
+        val key = generateKey(password, salt)
+        val cipher = Cipher.getInstance(algorithm)
+        cipher.init(Cipher.DECRYPT_MODE, key, IvParameterSpec(iv))
+        return cipher.doFinal(encryptedData)
+    }
+
+    private fun generateKey(password: String, salt: ByteArray): SecretKeySpec {
+        val factory = SecretKeyFactory.getInstance(keyAlgorithm)
+        val spec = PBEKeySpec(password.toCharArray(), salt, iterations, keySize)
+        val tmp = factory.generateSecret(spec)
+        return SecretKeySpec(tmp.encoded, "AES")
     }
 }
