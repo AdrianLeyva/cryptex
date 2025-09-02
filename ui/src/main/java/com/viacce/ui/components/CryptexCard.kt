@@ -20,7 +20,7 @@ fun CryptexCard(
     Card(
         shape = RoundedCornerShape(cornerRadius),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.05f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
         ),
         modifier = Modifier
             .shadow(
@@ -28,7 +28,7 @@ fun CryptexCard(
                 shape = RoundedCornerShape(cornerRadius)
             )
             .background(
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
                 shape = RoundedCornerShape(cornerRadius)
             )
     ) {

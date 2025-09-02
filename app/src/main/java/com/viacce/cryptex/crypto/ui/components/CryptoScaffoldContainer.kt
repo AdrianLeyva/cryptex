@@ -33,7 +33,7 @@ fun CryptoScaffoldContainer(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Cryptex",
+            text = context.getString(R.string.app_name),
             modifier = Modifier.padding(bottom = 16.dp),
             style = MaterialTheme.typography.headlineLarge,
             color = Color.White

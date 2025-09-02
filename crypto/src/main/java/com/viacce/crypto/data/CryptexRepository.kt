@@ -2,8 +2,12 @@ package com.viacce.crypto.data
 
 import android.content.ContentValues
 import android.content.Context
+import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
+import androidx.documentfile.provider.DocumentFile
+import com.viacce.core.utils.CryptexFile.createTemporalFile
+import com.viacce.core.utils.CryptexFile.getFileNameFromUri
 import com.viacce.crypto.algorithm.CryptexConfig.EXTENSION
 import com.viacce.crypto.algorithm.CryptexConfig.FOLDER
 import com.viacce.crypto.algorithm.ICryptexAlgorithm
@@ -17,27 +21,36 @@ class CryptexRepository @Inject constructor(
     private val cryptoAlgorithm: ICryptexAlgorithm
 ) {
 
-    fun encryptFile(data: ByteArray, originalFileName: String, password: String): File {
-        val extension = originalFileName.substringAfterLast('.', "")
-        val baseName = originalFileName.substringBeforeLast('.')
-        val encryptedData = cryptoAlgorithm.encrypt(data, password)
-        val extensionBytes = extension.toByteArray(Charsets.UTF_8)
-        val finalData = byteArrayOf(extensionBytes.size.toByte()) + extensionBytes + encryptedData
-        val finalFileName = "$baseName$EXTENSION"
-        val contentValues = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, finalFileName)
-            put(MediaStore.MediaColumns.MIME_TYPE, "application/octet-stream")
-            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOCUMENTS + FOLDER)
+    fun encryptFile(selectedUri: Uri, password: String): File {
+        context.contentResolver.openInputStream(selectedUri)?.let { inputStream ->
+            val data = inputStream.readBytes()
+            val fileName = getFileNameFromUri(context, selectedUri)
+            val extension = fileName.substringAfterLast('.', "")
+            val baseName = fileName.substringBeforeLast('.')
+            val encryptedData = cryptoAlgorithm.encrypt(data, password)
+            val extensionBytes = extension.toByteArray(Charsets.UTF_8)
+            val finalData =
+                byteArrayOf(extensionBytes.size.toByte()) + extensionBytes + encryptedData
+            val finalFileName = "$baseName$EXTENSION"
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, finalFileName)
+                put(MediaStore.MediaColumns.MIME_TYPE, "application/octet-stream")
+                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOCUMENTS + FOLDER)
+            }
+            val uri = context.contentResolver.insert(
+                MediaStore.Files.getContentUri("external"),
+                contentValues
+            ) ?: throw IOException("Error to create the file in MediaStore")
+            context.contentResolver.openOutputStream(uri)?.use { it.write(finalData) }
+            return File(context.cacheDir, finalFileName)
         }
-        val uri = context.contentResolver.insert(
-            MediaStore.Files.getContentUri("external"),
-            contentValues
-        ) ?: throw IOException("Error to create the file in MediaStore")
-        context.contentResolver.openOutputStream(uri)?.use { it.write(finalData) }
-        return File(context.cacheDir, finalFileName)
+        return File("", "")
     }
 
-    fun decryptFile(file: File, password: String): File {
+    fun decryptFile(selectedUri: Uri, password: String): File {
+        val inputStream = context.contentResolver.openInputStream(selectedUri)
+        val file = createTemporalFile(context, EXTENSION)
+        file.outputStream().use { output -> inputStream?.copyTo(output) }
         val fileData = file.readBytes()
         val extLength = fileData[0].toInt()
         val extBytes = fileData.sliceArray(1 until 1 + extLength)
@@ -56,6 +69,7 @@ class CryptexRepository @Inject constructor(
             contentValues
         ) ?: throw IOException("Error to decrypt file")
         context.contentResolver.openOutputStream(uri)?.use { it.write(decryptedData) }
+        DocumentFile.fromSingleUri(context, selectedUri)?.delete()
         return File(context.cacheDir, finalFileName)
     }
 }

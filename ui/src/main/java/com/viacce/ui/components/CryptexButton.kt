@@ -14,16 +14,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.viacce.ui.theme.DeepBlue
 
 @Composable
 fun CryptexButton(
+    modifier: Modifier = Modifier,
     text: String,
     icon: ImageVector? = null,
     enabled: Boolean = true,
-    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     val cornerRadius = 16.dp
@@ -56,7 +57,10 @@ fun CryptexButton(
             Text(
                 text = text,
                 fontSize = 16.sp,
-                style = TextStyle(color = Color.White)
+                style = TextStyle(
+                    color = Color.White,
+                    fontWeight = FontWeight.Medium
+                )
             )
         }
     }

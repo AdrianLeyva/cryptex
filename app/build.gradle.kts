@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
+    implementation(libs.androidx.documentfile)
     implementation(project(":ui"))
     implementation(project(":core"))
     implementation(project(":crypto"))

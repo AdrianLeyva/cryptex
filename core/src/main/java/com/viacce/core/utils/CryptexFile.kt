@@ -10,7 +10,6 @@ import java.io.File
 object CryptexFile {
 
     private const val DIRECTORY_CRYPTEX = "Cryptex"
-    private const val TEMP_PREFIX = "temp_"
     private const val FILE_PREFIX = "file_"
 
     fun createCryptexDirectory() {
@@ -21,7 +20,7 @@ object CryptexFile {
 
     fun createTemporalFile(context: Context, extension: String) = File(
         context.cacheDir,
-        "$TEMP_PREFIX${System.currentTimeMillis()}$extension"
+        "$FILE_PREFIX${System.currentTimeMillis()}$extension"
     )
 
     fun getFileNameFromUri(context: Context, uri: Uri): String {

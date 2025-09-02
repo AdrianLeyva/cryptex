@@ -1,6 +1,6 @@
 package com.viacce.cryptex.crypto.ui
 
-import android.net.Uri
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.LinearProgressIndicator
@@ -11,12 +11,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.viacce.core.utils.CryptexFile.createTemporalFile
-import com.viacce.core.utils.CryptexFile.getFileNameFromUri
 import com.viacce.cryptex.crypto.ui.components.CryptoErrorScreen
+import com.viacce.cryptex.crypto.ui.components.CryptoPasswordDialog
+import com.viacce.cryptex.crypto.ui.components.CryptoPermissionsDialog
 import com.viacce.cryptex.crypto.ui.components.CryptoScaffoldContainer
 import com.viacce.cryptex.crypto.ui.components.CryptoSuccessScreen
-import com.viacce.crypto.algorithm.CryptexConfig
 import com.viacce.ui.components.CryptexScaffold
 
 @Composable
@@ -27,25 +26,31 @@ fun CryptoScreen(
     val context = LocalContext.current
     val snackBarHostState = remember { SnackbarHostState() }
 
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) {
+        it?.let { treeUri ->
+            context.contentResolver.takePersistableUriPermission(
+                treeUri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            )
+            viewModel.saveCryptexDirectoryGrantedPermission()
+        }
+    }
+
     val encryptLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.OpenDocument()
     ) {
         it?.let { selectedUri ->
-            val inputStream = context.contentResolver.openInputStream(selectedUri) ?: return@let
-            val data = inputStream.readBytes()
-            val fileName = getFileNameFromUri(context, selectedUri)
-            viewModel.encryptFile(data, fileName, "cryptex")
+            viewModel.requestPassword(CryptexPasswordRequesterType.Encrypt(selectedUri))
         }
     }
 
     val decryptLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let { selectedUri ->
-            val inputStream = context.contentResolver.openInputStream(selectedUri) ?: return@let
-            val tempFile = createTemporalFile(context, CryptexConfig.EXTENSION)
-            tempFile.outputStream().use { output -> inputStream.copyTo(output) }
-            viewModel.decryptFile(tempFile, "cryptex")
+        contract = ActivityResultContracts.OpenDocument()
+    ) {
+        it?.let { selectedUri ->
+            viewModel.requestPassword(CryptexPasswordRequesterType.Decrypt(selectedUri))
         }
     }
 
@@ -54,14 +59,45 @@ fun CryptoScreen(
         CryptoScaffoldContainer(
             modifier = modifier,
             onEncryptListener = {
-                encryptLauncher.launch("*/*")
+                encryptLauncher.launch(arrayOf("*/*"))
             },
             onDecryptListener = {
-                decryptLauncher.launch("*/*")
+                decryptLauncher.launch(arrayOf("*/*"))
             }
         )
         with(state) {
             if (isLoading) LinearProgressIndicator()
+            if (showPermissionRequesterDialog)
+                CryptoPermissionsDialog(
+                    onConfirm = {
+                        viewModel.dismissPermissionsDialog()
+                        permissionLauncher.launch(null)
+                    },
+                    onDismiss = {
+                        viewModel.dismissPermissionsDialog()
+                    }
+                )
+            if (showPasswordRequesterDialog != null) {
+                CryptoPasswordDialog(
+                    onConfirm = { password ->
+                        viewModel.dismissPasswordDialog()
+                        with(showPasswordRequesterDialog) {
+                            when (this) {
+                                is CryptexPasswordRequesterType.Encrypt -> {
+                                    viewModel.encryptFile(selectedUri, password)
+                                }
+
+                                is CryptexPasswordRequesterType.Decrypt -> {
+                                    viewModel.decryptFile(selectedUri, password)
+                                }
+                            }
+                        }
+                    },
+                    onDismiss = {
+                        viewModel.dismissPasswordDialog()
+                    }
+                )
+            }
             if (file != null)
                 CryptoSuccessScreen(
                     file = file,

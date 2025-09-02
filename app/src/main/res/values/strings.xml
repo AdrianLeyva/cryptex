@@ -1,5 +1,20 @@
 <resources>
-    <string name="app_name">cryptex</string>
+    <string name="app_name">Cryptex</string>
     <string name="encrypt">Encrypt file</string>
     <string name="decrypt">Decrypt file</string>
+    <string name="permission_title">Permission Required</string>
+    <string name="permission_text_main">
+        To encrypt and decrypt files, we need access to the Cryptex folder. This will allow storing your files securely.
+    </string>
+    <string name="permission_text_sub">
+        You only need to grant this permission once.
+    </string>
+    <string name="permission_confirm">Select Folder</string>
+    <string name="cancel">Cancel</string>
+    <string name="password_title">Enter a password</string>
+    <string name="password_message">Please enter your encryption password.</string>
+    <string name="confirm">Confirm</string>
+    <string name="error_encryption">Encryption failed.</string>
+    <string name="error_decryption">Decryption failed.</string>
+    <string name="error_generic">Error processing the file.</string>
 </resources>
