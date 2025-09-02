@@ -6,8 +6,11 @@ import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
 import androidx.documentfile.provider.DocumentFile
+import com.viacce.core.exceptions.DecryptionException
+import com.viacce.core.exceptions.EncryptionException
 import com.viacce.core.utils.CryptexFile.createTemporalFile
 import com.viacce.core.utils.CryptexFile.getFileNameFromUri
+import com.viacce.core.utils.Result
 import com.viacce.crypto.algorithm.CryptexConfig.EXTENSION
 import com.viacce.crypto.algorithm.CryptexConfig.FOLDER
 import com.viacce.crypto.algorithm.ICryptexAlgorithm
@@ -21,8 +24,8 @@ class CryptexRepository @Inject constructor(
     private val cryptoAlgorithm: ICryptexAlgorithm
 ) {
 
-    fun encryptFile(selectedUri: Uri, password: String): File {
-        context.contentResolver.openInputStream(selectedUri)?.let { inputStream ->
+    fun encryptFile(selectedUri: Uri, password: String): Result<File> = try {
+        context.contentResolver.openInputStream(selectedUri)?.use { inputStream ->
             val data = inputStream.readBytes()
             val fileName = getFileNameFromUri(context, selectedUri)
             val extension = fileName.substringAfterLast('.', "")
@@ -40,14 +43,15 @@ class CryptexRepository @Inject constructor(
             val uri = context.contentResolver.insert(
                 MediaStore.Files.getContentUri("external"),
                 contentValues
-            ) ?: throw IOException("Error to create the file in MediaStore")
+            ) ?: throw IOException("Error creating file in MediaStore")
             context.contentResolver.openOutputStream(uri)?.use { it.write(finalData) }
-            return File(context.cacheDir, finalFileName)
-        }
-        return File("", "")
+            Result.Success(File(context.cacheDir, finalFileName))
+        } ?: Result.Error(IOException("Failed to open input stream for URI: $selectedUri"))
+    } catch (e: Exception) {
+        Result.Error(EncryptionException(), e.message)
     }
 
-    fun decryptFile(selectedUri: Uri, password: String): File {
+    fun decryptFile(selectedUri: Uri, password: String): Result<File> = try {
         val inputStream = context.contentResolver.openInputStream(selectedUri)
         val file = createTemporalFile(context, EXTENSION)
         file.outputStream().use { output -> inputStream?.copyTo(output) }
@@ -67,9 +71,11 @@ class CryptexRepository @Inject constructor(
         val uri = context.contentResolver.insert(
             MediaStore.Files.getContentUri("external"),
             contentValues
-        ) ?: throw IOException("Error to decrypt file")
+        ) ?: throw IOException("Error creating decrypted file")
         context.contentResolver.openOutputStream(uri)?.use { it.write(decryptedData) }
         DocumentFile.fromSingleUri(context, selectedUri)?.delete()
-        return File(context.cacheDir, finalFileName)
+        Result.Success(File(context.cacheDir, finalFileName))
+    } catch (e: Exception) {
+        Result.Error(DecryptionException(), e.message)
     }
 }

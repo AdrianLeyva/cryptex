@@ -4,9 +4,8 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.viacce.core.datastore.CryptexPreferencesManager
-import com.viacce.core.exceptions.DecryptionException
-import com.viacce.core.exceptions.EncryptionException
 import com.viacce.core.utils.CryptexFile.createCryptexDirectory
+import com.viacce.core.utils.Result
 import com.viacce.crypto.domain.DecryptFileUseCase
 import com.viacce.crypto.domain.EncryptFileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -52,15 +51,17 @@ class CryptoViewModel @Inject constructor(
     fun encryptFile(selectedUri: Uri, password: String) {
         _cryptoUiModelState.value = CryptoUiModel(isLoading = true)
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val file = encryptUseCase.execute(selectedUri, password)
-                withContext(Dispatchers.Main) {
-                    emitUiModelState(isLoading = false, file = file)
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    e.printStackTrace()
-                    emitUiModelState(isLoading = false, exception = EncryptionException())
+            val result = encryptUseCase.execute(selectedUri, password)
+            withContext(Dispatchers.Main) {
+                when (result) {
+                    is Result.Success -> {
+                        emitUiModelState(isLoading = false, file = result.data)
+                    }
+
+                    is Result.Error -> {
+                        result.exception.printStackTrace()
+                        emitUiModelState(isLoading = false, exception = result.exception)
+                    }
                 }
             }
         }
@@ -69,15 +70,17 @@ class CryptoViewModel @Inject constructor(
     fun decryptFile(selectedUri: Uri, password: String) {
         _cryptoUiModelState.value = CryptoUiModel(isLoading = true)
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val decrypted = decryptUseCase.execute(selectedUri, password)
-                withContext(Dispatchers.Main) {
-                    emitUiModelState(isLoading = false, file = decrypted)
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    e.printStackTrace()
-                    emitUiModelState(isLoading = false, exception = DecryptionException())
+            val result = decryptUseCase.execute(selectedUri, password)
+            withContext(Dispatchers.Main) {
+                when (result) {
+                    is Result.Success -> {
+                        emitUiModelState(isLoading = false, file = result.data)
+                    }
+
+                    is Result.Error -> {
+                        result.exception.printStackTrace()
+                        emitUiModelState(isLoading = false, exception = result.exception)
+                    }
                 }
             }
         }
