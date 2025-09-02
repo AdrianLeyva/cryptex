@@ -1,4 +1,4 @@
-package com.viacce.cryptex.crypto.presentation
+package com.viacce.cryptex.crypto.ui
 
 import android.content.Context
 import android.net.Uri

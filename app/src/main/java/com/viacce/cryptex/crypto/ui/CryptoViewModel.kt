@@ -1,26 +1,29 @@
-package com.viacce.cryptex.crypto.presentation
+package com.viacce.cryptex.crypto.ui
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.viacce.crypto.data.CryptexRepository
 import com.viacce.crypto.domain.DecryptFileUseCase
 import com.viacce.crypto.domain.EncryptFileUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import javax.inject.Inject
 
-class CryptoViewModel(private val context: Context) : ViewModel() {
+@HiltViewModel
+class CryptoViewModel @Inject constructor(
+    private val encryptUseCase: EncryptFileUseCase,
+    private val decryptUseCase: DecryptFileUseCase
+) : ViewModel() {
 
     val cryptoUiModelState: StateFlow<CryptoUiModel>
         get() = _cryptoUiModelState
+
     private var _cryptoUiModelState = MutableStateFlow(CryptoUiModel())
-    private val repository = CryptexRepository(context)
-    private val encryptUseCase = EncryptFileUseCase(repository)
-    private val decryptUseCase = DecryptFileUseCase(repository)
+
     fun encryptFile(data: ByteArray, fileName: String, password: String) {
         _cryptoUiModelState.value = CryptoUiModel(isLoading = true)
         viewModelScope.launch(Dispatchers.IO) {
