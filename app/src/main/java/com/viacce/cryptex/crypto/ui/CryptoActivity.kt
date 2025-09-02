@@ -7,8 +7,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import com.viacce.ui.theme.CryptexTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -23,16 +21,7 @@ class CryptoActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             CryptexTheme {
-                val cryptoUiModel by viewModel.cryptoUiModelState.collectAsState()
-                CryptoScreen(
-                    cryptoUiModel = cryptoUiModel,
-                    onEncryptFile = { data, fileName, password ->
-                        viewModel.encryptFile(data, fileName, "cryptex")
-                    },
-                    onDecryptFile = { file, password ->
-                        viewModel.decryptFile(file, "cryptex")
-                    }
-                )
+                CryptoScreen(viewModel = viewModel)
             }
         }
     }

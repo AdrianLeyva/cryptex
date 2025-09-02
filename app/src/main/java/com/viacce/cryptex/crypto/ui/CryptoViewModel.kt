@@ -2,6 +2,9 @@ package com.viacce.cryptex.crypto.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.viacce.core.exceptions.DecryptionException
+import com.viacce.core.exceptions.EncryptionException
+import com.viacce.core.utils.CryptexFile.createCryptexDirectory
 import com.viacce.crypto.domain.DecryptFileUseCase
 import com.viacce.crypto.domain.EncryptFileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,6 +27,10 @@ class CryptoViewModel @Inject constructor(
 
     private var _cryptoUiModelState = MutableStateFlow(CryptoUiModel())
 
+    init {
+        createCryptexDirectory()
+    }
+
     fun encryptFile(data: ByteArray, fileName: String, password: String) {
         _cryptoUiModelState.value = CryptoUiModel(isLoading = true)
         viewModelScope.launch(Dispatchers.IO) {
@@ -34,7 +41,8 @@ class CryptoViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    emitUiModelState(isLoading = false, exception = e)
+                    e.printStackTrace()
+                    emitUiModelState(isLoading = false, exception = EncryptionException())
                 }
             }
         }
@@ -50,7 +58,8 @@ class CryptoViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    emitUiModelState(isLoading = false, exception = e)
+                    e.printStackTrace()
+                    emitUiModelState(isLoading = false, exception = DecryptionException())
                 }
             }
         }
