@@ -54,6 +54,7 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
     implementation(libs.androidx.documentfile)
+    implementation(libs.core.splashscreen)
     implementation(project(":ui"))
     implementation(project(":core"))
     implementation(project(":crypto"))
