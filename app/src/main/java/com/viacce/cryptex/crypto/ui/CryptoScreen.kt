@@ -74,9 +74,9 @@ fun CryptoScreen(
                 }
             )
         }
-        state.file?.let {
+        state.uri?.let {
             CryptoSuccessScreen(
-                file = it,
+                uri = it,
                 snackBarHostState = snackBarHostState
             )
         }

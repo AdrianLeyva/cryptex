@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
@@ -55,7 +54,7 @@ class CryptoViewModel @Inject constructor(
             withContext(Dispatchers.Main) {
                 when (result) {
                     is Result.Success -> {
-                        emitUiModelState(isLoading = false, file = result.data)
+                        emitUiModelState(isLoading = false, uri = result.data)
                     }
 
                     is Result.Error -> {
@@ -74,7 +73,7 @@ class CryptoViewModel @Inject constructor(
             withContext(Dispatchers.Main) {
                 when (result) {
                     is Result.Success -> {
-                        emitUiModelState(isLoading = false, file = result.data)
+                        emitUiModelState(isLoading = false, uri = result.data)
                     }
 
                     is Result.Error -> {
@@ -103,14 +102,14 @@ class CryptoViewModel @Inject constructor(
         isLoading: Boolean = false,
         showPermissionRequesterDialog: Boolean = false,
         showPasswordRequesterDialog: CryptexPasswordRequesterType? = null,
-        file: File? = null,
+        uri: Uri? = null,
         exception: Exception? = null
     ) {
         _cryptoUiModelState.value = CryptoUiModel(
             isLoading = isLoading,
             showPermissionRequesterDialog = showPermissionRequesterDialog,
             showPasswordRequesterDialog = showPasswordRequesterDialog,
-            file = file,
+            uri = uri,
             exception = exception
         )
     }

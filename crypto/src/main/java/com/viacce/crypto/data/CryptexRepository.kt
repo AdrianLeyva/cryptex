@@ -14,11 +14,11 @@ import com.viacce.core.exceptions.EncryptionException
 import com.viacce.core.utils.CryptexFile.createTemporalFile
 import com.viacce.core.utils.CryptexFile.getFileNameFromUri
 import com.viacce.core.utils.Result
+import com.viacce.crypto.algorithm.CryptexConfig.BINARY_MIME
 import com.viacce.crypto.algorithm.CryptexConfig.CRYPTEX_EXTENSION
 import com.viacce.crypto.algorithm.CryptexConfig.CRYPTEX_FOLDER
 import com.viacce.crypto.algorithm.ICryptexAlgorithm
 import com.viacce.crypto.extensions.getMimeType
-import java.io.File
 import java.io.IOException
 import javax.inject.Inject
 
@@ -27,68 +27,69 @@ class CryptexRepository @Inject constructor(
     private val cryptoAlgorithm: ICryptexAlgorithm
 ) {
 
-    fun encryptFile(selectedUri: Uri, password: String): Result<File> = try {
+    fun encryptFile(selectedUri: Uri, password: String): Result<Uri> = runCatching {
         context.contentResolver.openInputStream(selectedUri)?.use { inputStream ->
-            val data = inputStream.readBytes()
             val fileName = getFileNameFromUri(context, selectedUri)
             val extension = fileName.substringAfterLast('.', "")
             val baseName = fileName.substringBeforeLast('.')
+            val data = inputStream.readBytes()
             val encryptedData = cryptoAlgorithm.encrypt(data, password)
             val extensionBytes = extension.toByteArray(Charsets.UTF_8)
-            val finalData =
-                byteArrayOf(extensionBytes.size.toByte()) + extensionBytes + encryptedData
+            val finalData = byteArrayOf(extensionBytes.size.toByte()) +
+                    extensionBytes + encryptedData
             val finalFileName = "$baseName$CRYPTEX_EXTENSION"
-            val contentValues = generateContentValues(
-                finalFileName,
-                "application/octet-stream",
-                DIRECTORY_DOCUMENTS + CRYPTEX_FOLDER
+            saveToMediaStore(
+                fileName = finalFileName,
+                mimeType = BINARY_MIME,
+                path = DIRECTORY_DOCUMENTS + CRYPTEX_FOLDER,
+                data = finalData
             )
-            val uri = context.contentResolver.insert(
-                getContentUri("external"),
-                contentValues
-            ) ?: throw IOException("Error creating file in MediaStore")
-            context.contentResolver.openOutputStream(uri)?.use { it.write(finalData) }
-            Result.Success(File(context.cacheDir, finalFileName))
-        } ?: Result.Error(IOException("Failed to open input stream for URI: $selectedUri"))
-    } catch (e: Exception) {
-        Result.Error(EncryptionException(), e.message)
-    }
+        } ?: throw IOException("Failed to open input stream for URI: $selectedUri")
+    }.fold(
+        onSuccess = { Result.Success(it) },
+        onFailure = { Result.Error(EncryptionException(), it.localizedMessage) }
+    )
 
-    fun decryptFile(selectedUri: Uri, password: String): Result<File> = try {
-        val inputStream = context.contentResolver.openInputStream(selectedUri)
+    fun decryptFile(selectedUri: Uri, password: String): Result<Uri> = runCatching {
         val file = createTemporalFile(context, CRYPTEX_EXTENSION)
-        file.outputStream().use { output -> inputStream?.copyTo(output) }
+        context.contentResolver.openInputStream(selectedUri)?.use { input ->
+            file.outputStream().use { output -> input.copyTo(output) }
+        }
         val fileData = file.readBytes()
         val extLength = fileData[0].toInt()
-        val extBytes = fileData.sliceArray(1 until 1 + extLength)
-        val extension = extBytes.toString(Charsets.UTF_8)
-        val encryptedBytes = fileData.sliceArray(1 + extLength until fileData.size)
+        val extension = fileData.copyOfRange(1, 1 + extLength).toString(Charsets.UTF_8)
+        val encryptedBytes = fileData.copyOfRange(1 + extLength, fileData.size)
         val decryptedData = cryptoAlgorithm.decrypt(encryptedBytes, password)
         val originalName = file.name.removeSuffix(CRYPTEX_EXTENSION)
         val finalFileName = if (extension.isNotEmpty()) "$originalName.$extension" else originalName
-        val contentValues = generateContentValues(
-            finalFileName,
-            extension.getMimeType(),
-            DIRECTORY_DOCUMENTS + CRYPTEX_FOLDER
+        val uri = saveToMediaStore(
+            fileName = finalFileName,
+            mimeType = extension.getMimeType(),
+            path = DIRECTORY_DOCUMENTS + CRYPTEX_FOLDER,
+            data = decryptedData
         )
-        val uri = context.contentResolver.insert(
-            getContentUri("external"),
-            contentValues
-        ) ?: throw IOException("Error creating decrypted file")
-        context.contentResolver.openOutputStream(uri)?.use { it.write(decryptedData) }
         DocumentFile.fromSingleUri(context, selectedUri)?.delete()
-        Result.Success(File(context.cacheDir, finalFileName))
-    } catch (e: Exception) {
-        Result.Error(DecryptionException(), e.message)
-    }
+        uri
+    }.fold(
+        onSuccess = { Result.Success(it) },
+        onFailure = { Result.Error(DecryptionException(), it.localizedMessage) }
+    )
 
-    private fun generateContentValues(
+    private fun saveToMediaStore(
         fileName: String,
-        extension: String,
-        path: String
-    ) = ContentValues().apply {
-        put(DISPLAY_NAME, fileName)
-        put(MIME_TYPE, extension.getMimeType())
-        put(RELATIVE_PATH, path)
+        mimeType: String,
+        path: String,
+        data: ByteArray
+    ): Uri {
+        val contentValues = ContentValues().apply {
+            put(DISPLAY_NAME, fileName)
+            put(MIME_TYPE, mimeType)
+            put(RELATIVE_PATH, path)
+        }
+        val uri = context.contentResolver.insert(getContentUri("external"), contentValues)
+            ?: throw IOException("Error creating file in MediaStore")
+        context.contentResolver.openOutputStream(uri)?.use { it.write(data) }
+            ?: throw IOException("Error writing to MediaStore outputStream")
+        return uri
     }
 }
