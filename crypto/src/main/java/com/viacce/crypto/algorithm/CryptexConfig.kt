@@ -1,6 +1,6 @@
 package com.viacce.crypto.algorithm
 
 object CryptexConfig {
-    const val FOLDER = "/Cryptex"
-    const val EXTENSION = ".cryptex"
+    const val CRYPTEX_FOLDER = "/Cryptex"
+    const val CRYPTEX_EXTENSION = ".cryptex"
 }
